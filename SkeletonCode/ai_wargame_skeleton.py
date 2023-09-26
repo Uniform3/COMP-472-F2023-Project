@@ -135,8 +135,8 @@ class Coord:
 
     def iter_range(self, dist: int) -> Iterable[Coord]:
         """Iterates over Coords inside a rectangle centered on our Coord."""
-        for row in range(self.row-dist,self.row+1+dist):
-            for col in range(self.col-dist,self.col+1+dist):
+        for row in range(self.row-dist,self.row+dist): #NOTE: stop of both ranges modified from original skeleton by removing the +1 for a proper square range centered on the Coord
+            for col in range(self.col-dist,self.col+dist):
                 yield Coord(row,col)
 
     def iter_adjacent(self) -> Iterable[Coord]:
@@ -322,9 +322,31 @@ class Game:
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
-            self.set(coords.dst,self.get(coords.src))
-            self.set(coords.src,None)
-            return (True,"")
+            if self.get(coords.dst) is None:
+                if self.get(coords.src) in ['Virus', 'Tech']: #These pieces are free to move after is_valid_move has checked it for being adjacent
+                    self.set(coords.dst,self.get(coords.src))
+                    self.set(coords.src,None)
+                    return (True,"")
+                elif self.get(coords.src) in ['AI', 'Firewall', 'Program']:
+                    if self.get(coords.src).player is 'Attacker': #if Attacker moves AI, Firewall, or Program, check if going up or left before confirming the move
+                        if (coords.dst.col == coords.src.col -1) or (coords.dst.row == coords.src.coll +1): 
+                            self.set(coords.dst,self.get(coords.src))
+                            self.set(coords.src,None)
+                            return (True,"")
+                        else:
+                            return (False,"invalid move")
+                    else: #if Defender moves AI, Firewall, or Program, check if going down or right before confirming the move
+                        if (coords.dst.col == coords.src.col +1) or (coords.dst.row == coords.src.coll -1): 
+                            self.set(coords.dst,self.get(coords.src))
+                            self.set(coords.src,None)
+                            return (True,"")
+                        else:
+                            return (False,"invalid move")
+            elif (coords.src.row == coords.dst.row) and (coords.src.col == coords.dst.col): #self-destruct condition
+                self.mod_health(coords.src, -9)
+                for i in coords.src.iter_range(1):
+                    if self.get(i) is not None:
+                        self.mod_health(i, -2)
         return (False,"invalid move")
 
     def next_turn(self):

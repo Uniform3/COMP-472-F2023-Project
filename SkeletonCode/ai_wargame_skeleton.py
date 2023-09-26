@@ -323,30 +323,31 @@ class Game:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
             if self.get(coords.dst) is None:
-                if self.get(coords.src) in ['Virus', 'Tech']: #These pieces are free to move after is_valid_move has checked it for being adjacent
+                if self.get(coords.src).type in [UnitType.Virus, UnitType.Tech]:
                     self.set(coords.dst,self.get(coords.src))
                     self.set(coords.src,None)
                     return (True,"")
-                elif self.get(coords.src) in ['AI', 'Firewall', 'Program']:
-                    if self.get(coords.src).player is 'Attacker': #if Attacker moves AI, Firewall, or Program, check if going up or left before confirming the move
-                        if (coords.dst.col == coords.src.col -1) or (coords.dst.row == coords.src.coll +1): 
+                elif self.get(coords.src).type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                    if self.get(coords.src).player == Player.Attacker: #if Attacker moves AI, Firewall, or Program, check if going up or left before confirming the move
+                        if (coords.dst.row == (coords.src.row-1)) or (coords.dst.col == (coords.src.col-1)): 
                             self.set(coords.dst,self.get(coords.src))
                             self.set(coords.src,None)
                             return (True,"")
                         else:
                             return (False,"invalid move")
                     else: #if Defender moves AI, Firewall, or Program, check if going down or right before confirming the move
-                        if (coords.dst.col == coords.src.col +1) or (coords.dst.row == coords.src.coll -1): 
+                        if (coords.dst.row == coords.src.row+1) or (coords.dst.col == coords.src.col+1): 
                             self.set(coords.dst,self.get(coords.src))
                             self.set(coords.src,None)
                             return (True,"")
                         else:
                             return (False,"invalid move")
-            elif (coords.src.row == coords.dst.row) and (coords.src.col == coords.dst.col): #self-destruct condition
+            elif ((coords.src.row == coords.dst.row) and (coords.src.col == coords.dst.col)):
                 self.mod_health(coords.src, -9)
                 for i in coords.src.iter_range(1):
                     if self.get(i) is not None:
                         self.mod_health(i, -2)
+                return (True,"")
         return (False,"invalid move")
 
     def next_turn(self):

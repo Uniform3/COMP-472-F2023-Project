@@ -348,6 +348,26 @@ class Game:
                     if self.get(i) is not None:
                         self.mod_health(i, -2)
                 return (True,"")
+            ###############      //   Nayeem         ##########################
+            else:
+                unit_src = self.get(coords.src)
+                unit_dst = self.get(coords.dst)
+                if unit_dst is None:
+                    return (False,"")
+                elif unit_src.player is unit_dst.player: ## Friendly unit -> repair
+                    if unit_src.type in [UnitType.Virus, UnitType.Firewall, UnitType.Program]:
+                        return (False, "")
+                    else:
+                        if (unit_dst.health == 9):
+                            return (False, "")
+                        else:
+                            self.mod_health(coords.dst, (unit_src.damage_amount(unit_dst)))
+                            return (True,"")
+                elif unit_src.player is not unit_dst.player: ## Adversarial unit -> damage
+                    self.mod_health(coords.src, -(unit_dst.damage_amount(unit_src)))
+                    self.mod_health(coords.dst, -(unit_src.damage_amount(unit_dst)))
+                    return (True,"")
+            ###############         Nayeem         ##########################
         return (False,"invalid move")
 
     def next_turn(self):

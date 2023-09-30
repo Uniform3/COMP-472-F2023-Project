@@ -316,18 +316,20 @@ class Game:
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
             return False
-        unit = self.get(coords.dst)
-        return (unit is None)
+        return True
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
-            if self.get(coords.dst) is None:
+            if self.get(coords.dst) is None: #move condition
                 if self.get(coords.src).type in [UnitType.Virus, UnitType.Tech]:
                     self.set(coords.dst,self.get(coords.src))
                     self.set(coords.src,None)
                     return (True,"")
                 elif self.get(coords.src).type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                    for adj_coord in Coord.iter_adjacent(coords.src): #check if unit is not engaged in combat
+                        if self.get(adj_coord) is not None and self.get(adj_coord).player != self.get(coords.src).player:
+                            return (False, "invalid move")
                     if self.get(coords.src).player == Player.Attacker: #if Attacker moves AI, Firewall, or Program, check if going up or left before confirming the move
                         if (coords.dst.row == (coords.src.row-1)) or (coords.dst.col == (coords.src.col-1)): 
                             self.set(coords.dst,self.get(coords.src))
@@ -342,7 +344,7 @@ class Game:
                             return (True,"")
                         else:
                             return (False,"invalid move")
-            elif ((coords.src.row == coords.dst.row) and (coords.src.col == coords.dst.col)):
+            elif ((coords.src.row == coords.dst.row) and (coords.src.col == coords.dst.col)): #self-destruct condition
                 self.mod_health(coords.src, -9)
                 for i in coords.src.iter_range(1):
                     if self.get(i) is not None:
@@ -361,7 +363,7 @@ class Game:
                         if (unit_dst.health == 9):
                             return (False, "")
                         else:
-                            self.mod_health(coords.dst, (unit_src.damage_amount(unit_dst)))
+                            self.mod_health(coords.dst, (unit_src.repair_amount(unit_dst)))
                             return (True,"")
                 elif unit_src.player is not unit_dst.player: ## Adversarial unit -> damage
                     self.mod_health(coords.src, -(unit_dst.damage_amount(unit_src)))

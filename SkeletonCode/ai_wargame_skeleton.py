@@ -352,7 +352,7 @@ class Game:
                 for i in coords.src.iter_range(1):
                     if self.get(i) is not None:
                         self.mod_health(i, -2)
-                return (True,"Self Destruct\n")
+                return (True,"Unit on " + str(coords.src) + " self-destructed \n\n")
             ###############      //   Nayeem         ##########################
             else:
                 unit_src = self.get(coords.src)
@@ -367,11 +367,11 @@ class Game:
                             return (False, "")
                         else:
                             self.mod_health(coords.dst, (unit_src.repair_amount(unit_dst)))
-                            return (True,"")
+                            return (True,"Unit on " + str(coords.src) + " repairs unit on " + str(coords.dst) + "\n\n")
                 elif unit_src.player is not unit_dst.player: ## Adversarial unit -> damage
                     self.mod_health(coords.src, -(unit_dst.damage_amount(unit_src)))
                     self.mod_health(coords.dst, -(unit_src.damage_amount(unit_dst)))
-                    return (True,"")
+                    return (True,"Unit on " + str(coords.src) + " attacks unit on " + str(coords.dst) + "\n\n")
             ###############         Nayeem         ##########################
         return (False,"invalid move")
 
@@ -629,14 +629,14 @@ def main():
 
     # create a new game
     game = Game(options=options)
-    gf.write("\nInitial Board Setup:\n" + str(game) + "\n------------------------------\n")
+    gf.write("\nInitial Board Setup:\n" + str(game))
     # the main game loop
     while True:
         print()
         #CODE ADDED HERE
         print(game)
         g = ()     #stores the current board state into a string, may not be needed later.
-        gf.write(str(game)+"\n")    #writes the current board state to the file
+        
 
         winner = game.has_winner()
         if winner is not None:
@@ -658,6 +658,7 @@ def main():
                 print("Computer doesn't know what to do!!!")
                 gf.write("Computer doesn't know what to do!!!")#added a write to file if the computer doesn't know what to do
                 exit(1)
+        gf.write(str(game)+"\n")    #writes the current board state to the file
     gf.close()  #added the close command to write to the file
 
 

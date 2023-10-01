@@ -13,6 +13,9 @@ import requests
 MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
 
+#create the file and allow to append to the file while the game is running (close it only at the end of main)
+gf = open("outputFile.txt", "a")
+
 class UnitType(Enum):
     """Every unit type."""
     AI = 0
@@ -329,14 +332,14 @@ class Game:
                     return (True,"")
                 elif self.get(coords.src).type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                     if self.get(coords.src).player == Player.Attacker: #if Attacker moves AI, Firewall, or Program, check if going up or left before confirming the move
-                        if (coords.dst.row == (coords.src.row-1)) or (coords.dst.col == (coords.src.col-1)): 
+                        if (coords.dst.row == (coords.src.row-1)) or (coords.dst.col == (coords.src.col-1)):
                             self.set(coords.dst,self.get(coords.src))
                             self.set(coords.src,None)
                             return (True,"")
                         else:
                             return (False,"invalid move")
                     else: #if Defender moves AI, Firewall, or Program, check if going down or right before confirming the move
-                        if (coords.dst.row == coords.src.row+1) or (coords.dst.col == coords.src.col+1): 
+                        if (coords.dst.row == coords.src.row+1) or (coords.dst.col == coords.src.col+1):
                             self.set(coords.dst,self.get(coords.src))
                             self.set(coords.src,None)
                             return (True,"")
@@ -423,11 +426,18 @@ class Game:
                 (success,result) = self.perform_move(mv)
                 if success:
                     print(f"Player {self.next_player.name}: ",end='')
+
+
                     print(result)
+                    gf.write(result)    #added a write to the file here to indicate the played result
+
+
                     self.next_turn()
                     break
                 else:
                     print("The move is not valid! Try again.")
+                    gf.write("The move is not valid! Try again.\n") #added a write to the file to indicate that the played move is invalid
+
 
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
@@ -435,8 +445,8 @@ class Game:
         if mv is not None:
             (success,result) = self.perform_move(mv)
             if success:
-                print(f"Computer {self.next_player.name}: ",end='')
-                print(result)
+                print(f"Computer {self.next_player.name}: ",end='')         #FILE WRITE HERE
+                print(result)                                               #FILE WRITE HERE
                 self.next_turn()
         return mv
 
@@ -554,6 +564,9 @@ class Game:
 ##############################################################################################################
 
 def main():
+    #creating a variable that will hold the "game type value (human vs human, human vs ai, ai vs human, ai vs ai)"
+    gt = ""
+
     # parse command line arguments
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
@@ -567,15 +580,27 @@ def main():
     # parse the game type
     if args.game_type == "attacker":
         game_type = GameType.AttackerVsComp
+        gt = "Player 1 = H & Player 2 = AI\n"
     elif args.game_type == "defender":
         game_type = GameType.CompVsDefender
+        gt = "Player 1 = H & Player 2 = AI\n"
     elif args.game_type == "manual":
         game_type = GameType.AttackerVsDefender
+        gt = "Player 1 = H & Player 2 = H\n"
     else:
         game_type = GameType.CompVsComp
+        gt = "Player 1 = AI & Player 2 = AI\n"
+
 
     # set up game options
     options = Options(game_type=game_type)
+    #adding the variables for the necessary information, then combining them into 1 string
+    b = str(options.alpha_beta)
+    t = str(options.max_time)
+    m = str(options.max_turns)
+    gameTraceInfo = "\n------------------------------\ngameTrace-" + b + "-" + t + "-" + m + "\n" + gt + "\n" #I was getting an error in the "gf.write" command if I put this in the parentheses, but this makes it work...
+    gf.write(gameTraceInfo)
+    gf.write("Timeout: " + t + "\nMax number of turns: " + m + "\nAlpha-Beta state: " + b + "\nPlay Mode: " + gt)
 
     # override class defaults via command line options
     if args.max_depth is not None:
@@ -591,10 +616,14 @@ def main():
     # the main game loop
     while True:
         print()
+        #CODE ADDED HERE
         print(game)
+        g = (str(game))
+
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
+            gf.write(winner.name + "wins!") #Prints the winner of the game
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
@@ -609,9 +638,15 @@ def main():
                 game.post_move_to_broker(move)
             else:
                 print("Computer doesn't know what to do!!!")
+                gf.write("Computer doesn't know what to do!!!")#added a write to file if the computer doesn't know what to do
                 exit(1)
+
+
+
+    gf.close()
 
 ##############################################################################################################
 
 if __name__ == '__main__':
     main()
+

@@ -637,10 +637,12 @@ def main():
 
     # the main game loop
     while True:
+
         print()
         #CODE ADDED HERE
         print(game)
-        g = (str(game))
+        g = (str(game))     #stores the current board state into a string, may not be needed later.
+        gf.write(g+"\n")    #writes the current board state to the file
 
         winner = game.has_winner()
         if winner is not None:
@@ -649,6 +651,7 @@ def main():
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
+
         elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
             game.human_turn()
         elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
@@ -662,10 +665,13 @@ def main():
                 print("Computer doesn't know what to do!!!")
                 gf.write("Computer doesn't know what to do!!!")#added a write to file if the computer doesn't know what to do
                 exit(1)
+    gf.close()  #added the close command to write to the file
 
 
 
-    gf.close()
+
+
+
 
 ##############################################################################################################
 

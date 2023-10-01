@@ -328,7 +328,7 @@ class Game:
                 if self.get(coords.src).type in [UnitType.Virus, UnitType.Tech]:
                     self.set(coords.dst,self.get(coords.src))
                     self.set(coords.src,None)
-                    return (True,"")
+                    return (True,"Move from " + str(coords.src) + " to " + str(coords.dst) + "\n\n")
                 elif self.get(coords.src).type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                     for adj_coord in Coord.iter_adjacent(coords.src): #check if unit is not engaged in combat
                         if self.get(adj_coord) is not None and self.get(adj_coord).player != self.get(coords.src).player:
@@ -337,14 +337,14 @@ class Game:
                         if (coords.dst.row == (coords.src.row-1)) or (coords.dst.col == (coords.src.col-1)):
                             self.set(coords.dst,self.get(coords.src))
                             self.set(coords.src,None)
-                            return (True,"")
+                            return (True,"Move from " + str(coords.src) + " to " + str(coords.dst) + "\n\n")
                         else:
                             return (False,"invalid move")
                     else: #if Defender moves AI, Firewall, or Program, check if going down or right before confirming the move
                         if (coords.dst.row == coords.src.row+1) or (coords.dst.col == coords.src.col+1):
                             self.set(coords.dst,self.get(coords.src))
                             self.set(coords.src,None)
-                            return (True,"")
+                            return (True,"Move from " + str(coords.src) + " to " + str(coords.dst) + "\n\n")
                         else:
                             return (False,"invalid move")
             elif ((coords.src.row == coords.dst.row) and (coords.src.col == coords.dst.col)): #self-destruct condition
@@ -352,7 +352,7 @@ class Game:
                 for i in coords.src.iter_range(1):
                     if self.get(i) is not None:
                         self.mod_health(i, -2)
-                return (True,"")
+                return (True,"Self Destruct\n")
             ###############      //   Nayeem         ##########################
             else:
                 unit_src = self.get(coords.src)
@@ -448,12 +448,8 @@ class Game:
                 (success,result) = self.perform_move(mv)
                 if success:
                     print(f"Player {self.next_player.name}: ",end='')
-
-
                     print(result)
                     gf.write(result)    #added a write to the file here to indicate the played result
-
-
                     self.next_turn()
                     break
                 else:
@@ -616,13 +612,7 @@ def main():
 
     # set up game options
     options = Options(game_type=game_type)
-    #adding the variables for the necessary information, then combining them into 1 string
-    b = str(options.alpha_beta)
-    t = str(options.max_time)
-    m = str(options.max_turns)
-    gameTraceInfo = "\n------------------------------\ngameTrace-" + b + "-" + t + "-" + m + "\n" + gt + "\n" #I was getting an error in the "gf.write" command if I put this in the parentheses, but this makes it work...
-    gf.write(gameTraceInfo)
-    gf.write("Timeout: " + t + "\nMax number of turns: " + m + "\nAlpha-Beta state: " + b + "\nPlay Mode: " + gt)
+
 
     # override class defaults via command line options
     if args.max_depth is not None:
@@ -632,26 +622,29 @@ def main():
     if args.broker is not None:
         options.broker = args.broker
 
+#adding the variables for the necessary information, then combining them into 1 string. Making the variables since they are used in 2 places.
+    b = str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+ "\n"
+    gf.write("==============================\ngameTrace-" + str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+ "\n" + "\n" + gt)
+    gf.write("Timeout: " + str(options.max_time) + "\nMax number of turns: " + str(options.max_turns) + "\nAlpha-Beta state: " + str(options.alpha_beta) + "\nPlay Mode: " + gt)
+
     # create a new game
     game = Game(options=options)
-
+    gf.write("\nInitial Board Setup:\n" + str(game) + "\n------------------------------\n")
     # the main game loop
     while True:
-
         print()
         #CODE ADDED HERE
         print(game)
-        g = (str(game))     #stores the current board state into a string, may not be needed later.
-        gf.write(g+"\n")    #writes the current board state to the file
+        g = ()     #stores the current board state into a string, may not be needed later.
+        gf.write(str(game)+"\n")    #writes the current board state to the file
 
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
-            gf.write(winner.name + "wins!") #Prints the winner of the game
+            gf.write(winner.name + " wins in " + str(game.turns_played) + " moves!\n") #Prints the winner of the game
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
-
         elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
             game.human_turn()
         elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:

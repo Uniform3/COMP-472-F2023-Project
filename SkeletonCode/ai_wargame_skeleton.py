@@ -138,8 +138,8 @@ class Coord:
 
     def iter_range(self, dist: int) -> Iterable[Coord]:
         """Iterates over Coords inside a rectangle centered on our Coord."""
-        for row in range(self.row-dist,self.row+dist): #NOTE: stop of both ranges modified from original skeleton by removing the +1 for a proper square range centered on the Coord
-            for col in range(self.col-dist,self.col+dist):
+        for row in range(self.row-dist,self.row+1+dist):
+            for col in range(self.col-dist,self.col+1+dist):
                 yield Coord(row,col)
 
     def iter_adjacent(self) -> Iterable[Coord]:
@@ -319,6 +319,30 @@ class Game:
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
             return False
+        if self.get(coords.dst) is None:
+            if unit.type in [UnitType.Virus, UnitType.Tech]:
+                return True
+            else:
+                for adj_coord in Coord.iter_adjacent(coords.src): #check if unit is not engaged in combat
+                        if self.get(adj_coord) is not None and self.get(adj_coord).player != self.get(coords.src).player:
+                            return False
+                if unit.player == Player.Attacker:
+                    if (coords.dst.row == (coords.src.row-1)) or (coords.dst.col == (coords.src.col-1)):
+                        return True
+                    else:
+                        return False
+                else:
+                    if (coords.dst.row == coords.src.row+1) or (coords.dst.col == coords.src.col+1):
+                        return True
+                    else:
+                        return False
+        elif ((coords.src.row == coords.dst.row) and (coords.src.col == coords.dst.col)):
+            return True
+        elif unit.player is self.get(coords.dst).player:
+            if unit.type in [UnitType.Virus, UnitType.Firewall, UnitType.Program] or self.get(coords.dst).health == 9:
+                return False
+            else:
+                return True
         return True
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
@@ -330,9 +354,10 @@ class Game:
                     self.set(coords.src,None)
                     return (True,"Move from " + str(coords.src) + " to " + str(coords.dst) + "\n\n")
                 elif self.get(coords.src).type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                    for adj_coord in Coord.iter_adjacent(coords.src): #check if unit is not engaged in combat
-                        if self.get(adj_coord) is not None and self.get(adj_coord).player != self.get(coords.src).player:
-                            return (False, "invalid move")
+                    #check no longer needed as is_valid_move performs it
+                    #for adj_coord in Coord.iter_adjacent(coords.src): #check if unit is not engaged in combat
+                    #    if self.get(adj_coord) is not None and self.get(adj_coord).player != self.get(coords.src).player:
+                    #        return (False, "invalid move")
                     if self.get(coords.src).player == Player.Attacker: #if Attacker moves AI, Firewall, or Program, check if going up or left before confirming the move
                         if (coords.dst.row == (coords.src.row-1)) or (coords.dst.col == (coords.src.col-1)):
                             self.set(coords.dst,self.get(coords.src))
@@ -591,6 +616,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
     parser.add_argument('--max_time', type=float, help='maximum search time')
+    parser.add_argument('--max_turn', type=int, help='maximum number of turns')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
@@ -617,6 +643,8 @@ def main():
     # override class defaults via command line options
     if args.max_depth is not None:
         options.max_depth = args.max_depth
+    if args.max_turn is not None:
+        options.max_turns = args.max_turn
     if args.max_time is not None:
         options.max_time = args.max_time
     if args.broker is not None:

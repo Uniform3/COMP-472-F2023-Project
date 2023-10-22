@@ -727,10 +727,10 @@ def main():
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--max_turn', type=int, help='maximum number of turns')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--alpha_beta', type=int, help='alpha-beta or minimax for search')
+    parser.add_argument('--alpha_beta', type=int, help='True for alpha-beta or False for minimax for search')
     parser.add_argument('--broker', type=str, help='play via a game broker')
-    parser.add_argument('--attack_h', type=int, help='the heuristic the attacker will use if it\'s an AI player')
-    parser.add_argument('--defend_h', type=int, help='the heuristic the defender will use if it\'s an AI player')
+    parser.add_argument('--attack_h', type=int, help='the heuristic the attacker will use if it\'s an AI player, enter int value of 0, 1, or 2')
+    parser.add_argument('--defend_h', type=int, help='the heuristic the defender will use if it\'s an AI player, enter int value of 0, 1, or 2')
     args = parser.parse_args()
 
     # parse the game type

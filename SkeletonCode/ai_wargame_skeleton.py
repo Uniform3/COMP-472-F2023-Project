@@ -4,6 +4,7 @@ import copy
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass, field
+from io import TextIOWrapper
 from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
@@ -14,7 +15,7 @@ MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
 
 #create the file and allow to append to the file while the game is running (close it only at the end of main)
-gf = open("outputFile.txt", "a")
+gf = open("output.txt", "a")
 
 class UnitType(Enum):
     """Every unit type."""
@@ -229,6 +230,8 @@ class Options:
     max_turns : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
+    attacker_heuristic : int | None = 0
+    defender_heuristic : int | None = 0
 
 ##############################################################################################################
 
@@ -237,6 +240,7 @@ class Stats:
     """Representation of the global game statistics."""
     evaluations_per_depth : dict[int,int] = field(default_factory=dict)
     total_seconds: float = 0.0
+    branching_factor_tuple = (int, int)
 
 ##############################################################################################################
 
@@ -250,6 +254,7 @@ class Game:
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai : bool = True
     _defender_has_ai : bool = True
+    gf: TextIOWrapper
 
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
@@ -481,7 +486,105 @@ class Game:
                     print("The move is not valid! Try again.")
                     gf.write("The move is not valid! Try again.\n") #added a write to the file to indicate that the played move is invalid
 
-
+    def heuristic(self) -> int:
+        player1_units = self.player_units(self.next_player)
+        player2_units = self.player_units(self.next_player.next())
+        heuristic_id = 0
+        heuristic_value = 0
+        if self.next_player == Player.Attacker:
+            heuristic_id = Options.attacker_heuristic
+        else:
+            heuristic_id = Options.defender_heuristic
+        
+        if heuristic_id == 0: #heuristic given in the handout
+            for i in player1_units:
+                if i[1].type == UnitType.AI:
+                    heuristic_value += 9999
+                else:
+                    heuristic_value += 3
+            for i in player2_units:
+                if i[1].type == UnitType.AI:
+                    heuristic_value += -9999
+                else:
+                    heuristic_value += -3
+            return heuristic_value
+        elif heuristic_id == 1: #more aggressive heuristic, Virus and Tech pieces are valued more than Program and Firewall and capturing the opponent's pieces have more impact than losing a piece
+            for i in player1_units:
+                if i[1].type == UnitType.AI:
+                    heuristic_value += 9999
+                elif i[1].type in [UnitType.Virus, UnitType.Tech]:
+                    heuristic_value += 6
+                else:
+                    heuristic_value += 3
+            for i in player2_units:
+                if i[1].type == UnitType.AI:
+                    heuristic_value += -9999
+                elif i[1].type in [UnitType.Virus, UnitType.Tech]:
+                    heuristic_value += -10
+                else:
+                    heuristic_value += -6
+            return heuristic_value
+        else: #
+            for i in player1_units:
+                if i[1].type == UnitType.AI:
+                    heuristic_value += 9999*i[1].health
+                elif i[1].type in [UnitType.Virus, UnitType.Tech]:
+                    heuristic_value += 6*i[1].health
+                else:
+                    heuristic_value +=3*i[1].health
+            for i in player2_units:
+                if i[1].type == UnitType.AI:
+                    heuristic_value += -9999*i[1].health
+                elif i[1].type in [UnitType.Virus, UnitType.Tech]:
+                    heuristic_value += -10*i[1].health
+                else:
+                    heuristic_value += -6*i[1].health
+            return heuristic_value
+        
+    def minimax (self, depth: int, maximizing: bool, start_time: datetime, max_time_allowed = Options.max_time, max_depth = Options.max_depth):
+        children = list(self.move_candidates())
+        self.stats.branching_factor_tuple[0] += children.__len__
+        self.stats.branching_factor_tuple[1] += 1
+        elapsed_time = (datetime.now() - start_time).total_seconds()
+        if depth == max_depth or children == None or (elapsed_time >= 0.95 * max_time_allowed):
+            return (self.heuristic(),None)
+        
+        if maximizing:
+            maxScore = (-10000000, None)
+            for child in children:
+                minimaxScore = self.clone().perform_move(child).minimax(depth+1, False, start_time)
+                if maxScore[0] < minimaxScore[0]:
+                    maxScore = (minimaxScore[0], child)
+            return maxScore
+        else:
+            minScore = (10000000, None)
+            for child in children:
+                minimaxScore = self.clone().perform_move(child).minimax(depth+1, True, start_time)
+                if minScore[0] > minimaxScore[0]:
+                    minScore = (minimaxScore[0], child)
+            return minScore
+        
+    def alphabeta(self, depth: int, maximizing: bool, start_time: datetime, alpha = -1000000, beta = 1000000, max_time_allowed = Options.max_time, max_depth = Options.max_depth):
+        children = list(self.move_candidates())
+        elapsed_time = (datetime.now() - start_time).total_seconds()
+        if depth == max_depth or children == None or (elapsed_time >= 0.95 * max_time_allowed):
+            return (self.heuristic(),None)
+        
+        if maximizing:
+            maxScore = (-10000000, None)
+            for child in children:
+                minimaxScore = self.clone().perform_move(child).minimax(depth+1, False, start_time)
+                if maxScore[0] < minimaxScore[0]:
+                    maxScore = (minimaxScore[0], child)
+            return maxScore
+        else:
+            minScore = (10000000, None)
+            for child in children:
+                minimaxScore = self.clone().perform_move(child).minimax(depth+1, True, start_time)
+                if minScore[0] > minimaxScore[0]:
+                    minScore = (minimaxScore[0], child)
+            return minScore
+        
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
         mv = self.suggest_move()
@@ -539,19 +642,26 @@ class Game:
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
-        (score, move, avg_depth) = self.random_move()
+        if Options.alpha_beta:
+            (score, move) = self.alphabeta(0, True, start_time)
+        else:
+            (score, move) = self.minimax(0, True, start_time)
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
-        print(f"Heuristic score: {score}")
-        print(f"Average recursive depth: {avg_depth:0.1f}")
-        print(f"Evals per depth: ",end='')
+        print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+        print(f"Heuristic score: {score} \n")
+        total_evals = sum(self.stats.evaluations_per_depth.values())
+        print(f"Cumulative evals: {total_evals/1000000}M \n")
+        print(f"Cumulative evals per depth: ",end='')
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
         print()
-        total_evals = sum(self.stats.evaluations_per_depth.values())
-        if self.stats.total_seconds > 0:
-            print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
-        print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+        print(f"Cumulative % evals per depth: ",end='')
+        for k in sorted(self.stats.evaluations_per_depth.keys()):
+            print(f"{k}:{self.stats.evaluations_per_depth[k]/total_evals}% ",end='')
+        #if self.stats.total_seconds > 0:
+        #    print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
+        print(f"Average branching factor: {self.stats.branching_factor_tuple[0]/self.stats.branching_factor_tuple[1]} \n",end='')
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -617,7 +727,10 @@ def main():
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--max_turn', type=int, help='maximum number of turns')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
+    parser.add_argument('--alpha_beta', type=int, help='alpha-beta or minimax for search')
     parser.add_argument('--broker', type=str, help='play via a game broker')
+    parser.add_argument('--attack_h', type=int, help='the heuristic the attacker will use if it\'s an AI player')
+    parser.add_argument('--defend_h', type=int, help='the heuristic the defender will use if it\'s an AI player')
     args = parser.parse_args()
 
     # parse the game type
@@ -646,11 +759,18 @@ def main():
         options.max_turns = args.max_turn
     if args.max_time is not None:
         options.max_time = args.max_time
+    if args.alpha_beta is not None:
+        options.alpha_beta = args.alpha_beta
     if args.broker is not None:
         options.broker = args.broker
+    if args.attack_h is 0 or 1 or 2:
+        options.attacker_heuristic = args.attack_h
+    if args.defend_h is 0 or 1 or 2:
+        options.defender_heuristic = args.defend_h
 
 #adding the variables for the necessary information, then combining them into 1 string. Making the variables since they are used in 2 places.
-    b = str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+ "\n"
+    filename = "gameTrace-"+str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+".txt"
+    
     gf.write("==============================\ngameTrace-" + str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+ "\n" + "\n" + gt)
     gf.write("Timeout: " + str(options.max_time) + "\nMax number of turns: " + str(options.max_turns) + "\nAlpha-Beta state: " + str(options.alpha_beta) + "\nPlay Mode: " + gt)
 

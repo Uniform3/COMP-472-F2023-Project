@@ -10,12 +10,14 @@ from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
 import requests
 
+from shutil import copyfile
+
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
 
 #create the file and allow to append to the file while the game is running (close it only at the end of main)
-gf = open("output.txt", "a")
+gf = open("output.txt", "w")
 
 class UnitType(Enum):
     """Every unit type."""
@@ -254,7 +256,7 @@ class Game:
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai : bool = True
     _defender_has_ai : bool = True
-    gf: TextIOWrapper
+    # gf: TextIOWrapper
 
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
@@ -495,7 +497,7 @@ class Game:
             heuristic_id = Options.attacker_heuristic
         else:
             heuristic_id = Options.defender_heuristic
-        
+
         if heuristic_id == 0: #heuristic given in the handout
             for i in player1_units:
                 if i[1].type == UnitType.AI:
@@ -540,59 +542,89 @@ class Game:
                 else:
                     heuristic_value += -6*i[1].health
             return heuristic_value
-        
-    def minimax (self, depth: int, maximizing: bool, start_time: datetime, max_time_allowed = Options.max_time, max_depth = Options.max_depth):
+
+    def minimax (self,
+                 depth: int,
+                 maximizing: bool,
+                 start_time: datetime,
+                 max_time_allowed = Options.max_time,
+                 max_depth = Options.max_depth):
         children = list(self.move_candidates())
         self.stats.branching_factor_tuple[0] += children.__len__
         self.stats.branching_factor_tuple[1] += 1
         elapsed_time = (datetime.now() - start_time).total_seconds()
         if depth == max_depth or children == None or (elapsed_time >= 0.95 * max_time_allowed):
             return (self.heuristic(),None)
-        
+
         if maximizing:
             maxScore = (-10000000, None)
             for child in children:
-                minimaxScore = self.clone().perform_move(child).minimax(depth+1, False, start_time)
+                temp = self.clone()
+                temp.perform_move(child)
+                minimaxScore = temp.minimax(depth+1, False, start_time)
                 if maxScore[0] < minimaxScore[0]:
                     maxScore = (minimaxScore[0], child)
             return maxScore
         else:
             minScore = (10000000, None)
             for child in children:
-                minimaxScore = self.clone().perform_move(child).minimax(depth+1, True, start_time)
+                otherTemp = self.clone()
+                otherTemp.perform_move(child)
+                minimaxScore = otherTemp.minimax(depth+1, True, start_time)
                 if minScore[0] > minimaxScore[0]:
                     minScore = (minimaxScore[0], child)
             return minScore
-        
-    def alphabeta(self, depth: int, maximizing: bool, start_time: datetime, alpha = -1000000, beta = 1000000, max_time_allowed = Options.max_time, max_depth = Options.max_depth):
+
+    def alphabeta(self,
+                  depth: int,
+                  maximizing: bool,
+                  start_time: datetime,
+                  alpha = -1000000,
+                  beta = 1000000,
+                  max_time_allowed = Options.max_time,
+                  max_depth = Options.max_depth):
+
         children = list(self.move_candidates())
+        self.stats.branching_factor_tuple[0] += children.__len__        # added this (same code from minimax) to compute the branching factor
+        self.stats.branching_factor_tuple[1] += 1
         elapsed_time = (datetime.now() - start_time).total_seconds()
+
+
         if depth == max_depth or children == None or (elapsed_time >= 0.95 * max_time_allowed):
             return (self.heuristic(),None)
-        
         if maximizing:
             maxScore = (-10000000, None)
             for child in children:
-                minimaxScore = self.clone().perform_move(child).minimax(depth+1, False, start_time)
+                temp = self.clone()
+                temp.perform_move(child)
+                minimaxScore = temp.alphabeta(depth-1, False, start_time, alpha, beta, max_time_allowed, max_depth)
                 if maxScore[0] < minimaxScore[0]:
                     maxScore = (minimaxScore[0], child)
+                    alpha = max(alpha, maxScore[0])
+                if  beta <= alpha:
+                    break
             return maxScore
         else:
             minScore = (10000000, None)
             for child in children:
-                minimaxScore = self.clone().perform_move(child).minimax(depth+1, True, start_time)
+                otherTemp = self.clone()
+                otherTemp.perform_move(child)
+                minimaxScore = otherTemp.alphabeta(depth-1, True, alpha, beta, max_time_allowed, max_depth)
                 if minScore[0] > minimaxScore[0]:
                     minScore = (minimaxScore[0], child)
+                    beta = min(beta, minScore[0])
+                if beta <= alpha:
+                    break
             return minScore
-        
+
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
         mv = self.suggest_move()
         if mv is not None:
             (success,result) = self.perform_move(mv)
             if success:
-                print(f"Computer {self.next_player.name}: ",end='')         #FILE WRITE HERE
-                print(result)                                               #FILE WRITE HERE
+                print(f"Computer {self.next_player.name}: ",end='')
+                print(result)
                 self.next_turn()
         return mv
 
@@ -649,19 +681,28 @@ class Game:
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+        gf.write(f"Elapsed time: {elapsed_seconds:0.1f}s")                                                                              # added file write here
         print(f"Heuristic score: {score} \n")
+        gf.write(f"Heuristic score: {score} \n")                                                                                        # added file write here
         total_evals = sum(self.stats.evaluations_per_depth.values())
         print(f"Cumulative evals: {total_evals/1000000}M \n")
+        gf.write(f"Cumulative evals: {total_evals/1000000}M \n")                                                                        # added file write here
         print(f"Cumulative evals per depth: ",end='')
+        gf.write(f"Cumulative evals per depth: ",end='')                                                                                # added file write here
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
+            gf.write(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')                                                              # added file write here
         print()
+        gf.write("\n")                                                                                                                  # added file write here
         print(f"Cumulative % evals per depth: ",end='')
+        gf.write(f"Cumulative % evals per depth: ",end='')                                                                              # added file write here
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]/total_evals}% ",end='')
+            gf.write(f"{k}:{self.stats.evaluations_per_depth[k]/total_evals}% ",end='')                                                 # added file write here
         #if self.stats.total_seconds > 0:
         #    print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
         print(f"Average branching factor: {self.stats.branching_factor_tuple[0]/self.stats.branching_factor_tuple[1]} \n",end='')
+        gf.write(f"Average branching factor: {self.stats.branching_factor_tuple[0]/self.stats.branching_factor_tuple[1]} \n",end='')    # added file write here
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -769,8 +810,8 @@ def main():
         options.defender_heuristic = args.defend_h
 
 #adding the variables for the necessary information, then combining them into 1 string. Making the variables since they are used in 2 places.
-    filename = "gameTrace-"+str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+".txt"
-    
+    filename = "gameTrace-"+str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)
+
     gf.write("==============================\ngameTrace-" + str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+ "\n" + "\n" + gt)
     gf.write("Timeout: " + str(options.max_time) + "\nMax number of turns: " + str(options.max_turns) + "\nAlpha-Beta state: " + str(options.alpha_beta) + "\nPlay Mode: " + gt)
 
@@ -782,13 +823,11 @@ def main():
         print()
         #CODE ADDED HERE
         print(game)
-        g = ()     #stores the current board state into a string, may not be needed later.
-
 
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
-            gf.write(winner.name + " wins in " + str(game.turns_played) + " moves!\n") #Prints the winner of the game
+            gf.write(winner.name + " wins in " + str(game.turns_played) + " moves!\n")              #Prints the winner of the game
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
@@ -803,15 +842,13 @@ def main():
                 game.post_move_to_broker(move)
             else:
                 print("Computer doesn't know what to do!!!")
-                gf.write("Computer doesn't know what to do!!!")#added a write to file if the computer doesn't know what to do
+                gf.write("Computer doesn't know what to do!!!") #added a write to file if the computer doesn't know what to do
                 exit(1)
         gf.write(str(game)+"\n")    #writes the current board state to the file
     gf.close()  #added the close command to write to the file
 
 
-
-
-
+    copyfile("output.txt", f"{filename}.txt")   # creates a new text file with the game trace in it, does a copy of the current game and stores it in a appropriately named file.
 
 
 ##############################################################################################################

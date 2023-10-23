@@ -550,8 +550,8 @@ class Game:
         children = list(self.move_candidates())
         self.stats.branching_factor_tuple[0] += children.__len__
         self.stats.branching_factor_tuple[1] += 1
-        elapsed_time = (datetime.now() - start_time).total_seconds()
-        if depth == self.options.max_depth or children == None or (elapsed_time >= 0.95 * self.options.max_time):
+        #elapsed_time = (datetime.now() - start_time).total_seconds()
+        if depth == self.options.max_depth or children == None :#or (elapsed_time >= 0.95 * self.options.max_time):
             return (self.heuristic(),None)
 
         if maximizing:
@@ -583,10 +583,10 @@ class Game:
         children = list(self.move_candidates())
         self.stats.branching_factor_tuple[0] = self.stats.branching_factor_tuple[0] + len(children)        # added this (same code from minimax) to compute the branching factor
         self.stats.branching_factor_tuple[1] = self.stats.branching_factor_tuple[1] + 1
-        elapsed_time = (datetime.now() - start_time).total_seconds()
+        #elapsed_time = (datetime.now() - start_time).total_seconds()
 
 
-        if depth == self.options.max_depth or children == None or (elapsed_time >= 0.95 * self.options.max_time):
+        if depth == self.options.max_depth or children == None: #  or (elapsed_time >= 0.95 * self.options.max_time):
             return (self.heuristic(),None)
         if maximizing:
             maxScore = (-10000000, None)
@@ -702,7 +702,7 @@ class Game:
         return move
 
     def post_move_to_broker(self, move: CoordPair):
-        """Send a move to the game broker."""
+        """Send a move to the game broker."""_
         if self.options.broker is None:
             return
         data = {
@@ -811,7 +811,7 @@ def main():
         options.defender_heuristic = args.defend_h
 
 #adding the variables for the necessary information, then combining them into 1 string. Making the variables since they are used in 2 places.
-    filename = "gameTrace-"+(Options.alpha_beta.__str__)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)
+    filename = "gameTrace-"+str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)
 
     gf.write("==============================\ngameTrace-" + str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+ "\n" + "\n" + gt)
     gf.write("Timeout: " + str(options.max_time) + "\nMax number of turns: " + str(options.max_turns) + "\nAlpha-Beta state: " + str(options.alpha_beta) + "\nPlay Mode: " + gt)

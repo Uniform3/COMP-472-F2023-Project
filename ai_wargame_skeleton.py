@@ -764,7 +764,7 @@ def main():
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--max_turn', type=int, help='maximum number of turns')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--alpha_beta', type=int, help='True for alpha-beta or False for minimax for search')
+    parser.add_argument('--alpha_beta', type=bool, help='True for alpha-beta or False for minimax for search')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     parser.add_argument('--attack_h', type=int, help='the heuristic the attacker will use if it\'s an AI player, enter int value of 0, 1, or 2')
     parser.add_argument('--defend_h', type=int, help='the heuristic the defender will use if it\'s an AI player, enter int value of 0, 1, or 2')
@@ -792,21 +792,26 @@ def main():
     # override class defaults via command line options
     if args.max_depth is not None:
         options.max_depth = args.max_depth
+
     if args.max_turn is not None:
         options.max_turns = args.max_turn
+
     if args.max_time is not None:
         options.max_time = args.max_time
+
     if args.alpha_beta is not None:
         options.alpha_beta = args.alpha_beta
+
     if args.broker is not None:
         options.broker = args.broker
+
     if args.attack_h is 0 or 1 or 2:
         options.attacker_heuristic = args.attack_h
     if args.defend_h is 0 or 1 or 2:
         options.defender_heuristic = args.defend_h
 
 #adding the variables for the necessary information, then combining them into 1 string. Making the variables since they are used in 2 places.
-    filename = "gameTrace-"+str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)
+    filename = "gameTrace-"+(Options.alpha_beta.__str__)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)
 
     gf.write("==============================\ngameTrace-" + str(options.alpha_beta)+ "-" + str(options.max_time)+ "-" + str(options.max_turns)+ "\n" + "\n" + gt)
     gf.write("Timeout: " + str(options.max_time) + "\nMax number of turns: " + str(options.max_turns) + "\nAlpha-Beta state: " + str(options.alpha_beta) + "\nPlay Mode: " + gt)

@@ -242,7 +242,7 @@ class Stats:
     """Representation of the global game statistics."""
     evaluations_per_depth : dict[int,int] = field(default_factory=dict)
     total_seconds: float = 0.0
-    branching_factor_tuple = (int, int)
+    branching_factor_tuple = [0,0]
 
 ##############################################################################################################
 
@@ -546,14 +546,12 @@ class Game:
     def minimax (self,
                  depth: int,
                  maximizing: bool,
-                 start_time: datetime,
-                 max_time_allowed = Options.max_time,
-                 max_depth = Options.max_depth):
+                 start_time: datetime):
         children = list(self.move_candidates())
         self.stats.branching_factor_tuple[0] += children.__len__
         self.stats.branching_factor_tuple[1] += 1
         elapsed_time = (datetime.now() - start_time).total_seconds()
-        if depth == max_depth or children == None or (elapsed_time >= 0.95 * max_time_allowed):
+        if depth == self.options.max_depth or children == None or (elapsed_time >= 0.95 * self.options.max_time):
             return (self.heuristic(),None)
 
         if maximizing:
@@ -580,24 +578,22 @@ class Game:
                   maximizing: bool,
                   start_time: datetime,
                   alpha = -1000000,
-                  beta = 1000000,
-                  max_time_allowed = Options.max_time,
-                  max_depth = Options.max_depth):
+                  beta = 1000000):
 
         children = list(self.move_candidates())
-        self.stats.branching_factor_tuple[0] += children.__len__        # added this (same code from minimax) to compute the branching factor
-        self.stats.branching_factor_tuple[1] += 1
+        self.stats.branching_factor_tuple[0] = self.stats.branching_factor_tuple[0] + len(children)        # added this (same code from minimax) to compute the branching factor
+        self.stats.branching_factor_tuple[1] = self.stats.branching_factor_tuple[1] + 1
         elapsed_time = (datetime.now() - start_time).total_seconds()
 
 
-        if depth == max_depth or children == None or (elapsed_time >= 0.95 * max_time_allowed):
+        if depth == self.options.max_depth or children == None or (elapsed_time >= 0.95 * self.options.max_time):
             return (self.heuristic(),None)
         if maximizing:
             maxScore = (-10000000, None)
             for child in children:
                 temp = self.clone()
                 temp.perform_move(child)
-                minimaxScore = temp.alphabeta(depth-1, False, start_time, alpha, beta, max_time_allowed, max_depth)
+                minimaxScore = temp.alphabeta(depth-1, False, start_time, alpha, beta)
                 if maxScore[0] < minimaxScore[0]:
                     maxScore = (minimaxScore[0], child)
                     alpha = max(alpha, maxScore[0])
@@ -609,7 +605,7 @@ class Game:
             for child in children:
                 otherTemp = self.clone()
                 otherTemp.perform_move(child)
-                minimaxScore = otherTemp.alphabeta(depth-1, True, alpha, beta, max_time_allowed, max_depth)
+                minimaxScore = otherTemp.alphabeta(depth-1, True, alpha, beta)
                 if minScore[0] > minimaxScore[0]:
                     minScore = (minimaxScore[0], child)
                     beta = min(beta, minScore[0])
@@ -855,4 +851,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

@@ -702,7 +702,7 @@ class Game:
         return move
 
     def post_move_to_broker(self, move: CoordPair):
-        """Send a move to the game broker."""_
+        """Send a move to the game broker."""
         if self.options.broker is None:
             return
         data = {

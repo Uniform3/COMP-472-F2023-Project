@@ -550,8 +550,8 @@ class Game:
         children = list(self.move_candidates())
         self.stats.branching_factor_tuple[0] += children.__len__
         self.stats.branching_factor_tuple[1] += 1
-        #elapsed_time = (datetime.now() - start_time).total_seconds()
-        if depth == self.options.max_depth or children == None :#or (elapsed_time >= 0.95 * self.options.max_time):
+        elapsed_time = (datetime.now() - start_time).total_seconds()
+        if depth == self.options.max_depth or children == None or (elapsed_time >= 0.95 * self.options.max_time):
             return (self.heuristic(),None)
 
         if maximizing:
@@ -583,10 +583,11 @@ class Game:
         children = list(self.move_candidates())
         self.stats.branching_factor_tuple[0] = self.stats.branching_factor_tuple[0] + len(children)        # added this (same code from minimax) to compute the branching factor
         self.stats.branching_factor_tuple[1] = self.stats.branching_factor_tuple[1] + 1
-        #elapsed_time = (datetime.now() - start_time).total_seconds()
+        gf.write("START TIME HERE:" + str(start_time))
+        elapsed_time = (datetime.now() - start_time).total_seconds()
 
 
-        if depth == self.options.max_depth or children == None: #  or (elapsed_time >= 0.95 * self.options.max_time):
+        if depth == self.options.max_depth or children == None  or (elapsed_time >= 0.95 * self.options.max_time):
             return (self.heuristic(),None)
         if maximizing:
             maxScore = (-10000000, None)

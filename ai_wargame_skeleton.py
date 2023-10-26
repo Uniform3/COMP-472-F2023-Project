@@ -586,7 +586,6 @@ class Game:
         gf.write("START TIME HERE:" + str(start_time))
         elapsed_time = (datetime.now() - start_time).total_seconds()
 
-
         if depth == self.options.max_depth or children == None  or (elapsed_time >= 0.95 * self.options.max_time):
             return (self.heuristic(),None)
         if maximizing:
@@ -606,7 +605,7 @@ class Game:
             for child in children:
                 otherTemp = self.clone()
                 otherTemp.perform_move(child)
-                minimaxScore = otherTemp.alphabeta(depth-1, True, alpha, beta)
+                minimaxScore = otherTemp.alphabeta(depth-1, True, start_time, alpha, beta)  #THIS FUCKING SPOT HAD A MOTHERFUCKING ISSUE WE WERE CALLING ALPHABETA(DEPTH, TRUE, ALPHA BETA) SO WE DIDN'T HAVE THE START_TIME ARGUMENT. GOD FUCKING DAMNIT IM SO ANNOYED AT MYSELF RIGHT NOW.
                 if minScore[0] > minimaxScore[0]:
                     minScore = (minimaxScore[0], child)
                     beta = min(beta, minScore[0])

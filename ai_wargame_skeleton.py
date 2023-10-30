@@ -8,7 +8,7 @@ from io import TextIOWrapper
 from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
-import requests
+# import requests
 
 from shutil import copyfile
 
@@ -18,6 +18,7 @@ MIN_HEURISTIC_SCORE = -2000000000
 
 #create the file and allow to append to the file while the game is running (close it only at the end of main)
 gf = open("output.txt", "w")
+
 
 class UnitType(Enum):
     """Every unit type."""
@@ -256,7 +257,7 @@ class Game:
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai : bool = True
     _defender_has_ai : bool = True
-    # gf: TextIOWrapper
+
 
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
@@ -580,20 +581,24 @@ class Game:
                   alpha = -1000000,
                   beta = 1000000):
 
+        temp = self.clone()
+
         children = list(self.move_candidates())
         self.stats.branching_factor_tuple[0] = self.stats.branching_factor_tuple[0] + len(children)        # added this (same code from minimax) to compute the branching factor
         self.stats.branching_factor_tuple[1] = self.stats.branching_factor_tuple[1] + 1
-        gf.write("START TIME HERE:" + str(start_time))
-        elapsed_time = (datetime.now() - start_time).total_seconds()
 
-        if depth == self.options.max_depth or children == None  or (elapsed_time >= 0.95 * self.options.max_time):
+        gf.write("\nSTART TIME HERE:" + str(start_time) + "\n" + "current depth is: " + str(depth) + "\nmax depth is: " + str(self.options.max_depth) + "\n--------")
+        elapsed_time = (datetime.now() - start_time).total_seconds()
+        allowedTime = elapsed_time * 0.95
+        if (depth == self.options.max_depth) or (children == None)  or (elapsed_time >= allowedTime):
             return (self.heuristic(),None)
+
         if maximizing:
             maxScore = (-10000000, None)
             for child in children:
-                temp = self.clone()
+                # temp = self.clone()
                 temp.perform_move(child)
-                minimaxScore = temp.alphabeta(depth-1, False, start_time, alpha, beta)
+                minimaxScore = temp.alphabeta(depth+1, False, start_time, alpha, beta)
                 if maxScore[0] < minimaxScore[0]:
                     maxScore = (minimaxScore[0], child)
                     alpha = max(alpha, maxScore[0])
@@ -603,9 +608,9 @@ class Game:
         else:
             minScore = (10000000, None)
             for child in children:
-                otherTemp = self.clone()
-                otherTemp.perform_move(child)
-                minimaxScore = otherTemp.alphabeta(depth-1, True, start_time, alpha, beta)  #THIS FUCKING SPOT HAD A MOTHERFUCKING ISSUE WE WERE CALLING ALPHABETA(DEPTH, TRUE, ALPHA BETA) SO WE DIDN'T HAVE THE START_TIME ARGUMENT. GOD FUCKING DAMNIT IM SO ANNOYED AT MYSELF RIGHT NOW.
+                # temp = self.clone()
+                temp.perform_move(child)
+                minimaxScore = temp.alphabeta(depth+1, True, start_time, alpha, beta)
                 if minScore[0] > minimaxScore[0]:
                     minScore = (minimaxScore[0], child)
                     beta = min(beta, minScore[0])
@@ -676,29 +681,34 @@ class Game:
             (score, move) = self.minimax(0, True, start_time)
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
+
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         gf.write(f"Elapsed time: {elapsed_seconds:0.1f}s")                                                                              # added file write here
+
         print(f"Heuristic score: {score} \n")
+
         gf.write(f"Heuristic score: {score} \n")                                                                                        # added file write here
         total_evals = sum(self.stats.evaluations_per_depth.values())
         print(f"Cumulative evals: {total_evals/1000000}M \n")
         gf.write(f"Cumulative evals: {total_evals/1000000}M \n")                                                                        # added file write here
+
         print(f"Cumulative evals per depth: ",end='')
-        gf.write(f"Cumulative evals per depth: ",end='')                                                                                # added file write here
+        gf.write(f"Cumulative evals per depth: ")                                                                                # added file write here
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
             gf.write(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')                                                              # added file write here
         print()
         gf.write("\n")                                                                                                                  # added file write here
+
         print(f"Cumulative % evals per depth: ",end='')
-        gf.write(f"Cumulative % evals per depth: ",end='')                                                                              # added file write here
+        gf.write(f"Cumulative % evals per depth: ")                                                                              # added file write here
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]/total_evals}% ",end='')
             gf.write(f"{k}:{self.stats.evaluations_per_depth[k]/total_evals}% ",end='')                                                 # added file write here
         #if self.stats.total_seconds > 0:
         #    print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
         print(f"Average branching factor: {self.stats.branching_factor_tuple[0]/self.stats.branching_factor_tuple[1]} \n",end='')
-        gf.write(f"Average branching factor: {self.stats.branching_factor_tuple[0]/self.stats.branching_factor_tuple[1]} \n",end='')    # added file write here
+        gf.write(f"Average branching factor: {self.stats.branching_factor_tuple[0]/self.stats.branching_factor_tuple[1]} \n")    # added file write here
         return move
 
     def post_move_to_broker(self, move: CoordPair):

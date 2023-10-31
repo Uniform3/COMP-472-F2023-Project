@@ -8,7 +8,7 @@ from io import TextIOWrapper
 from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
-# import requests
+import requests
 
 from shutil import copyfile
 
@@ -578,8 +578,8 @@ class Game:
                   depth: int,
                   maximizing: bool,
                   start_time: datetime,
-                  alpha = -1000000,
-                  beta = 1000000):
+                  alpha : int | None = -1000000,
+                  beta : int | None = 1000000):
 
         temp = self.clone()
 
@@ -587,7 +587,7 @@ class Game:
         self.stats.branching_factor_tuple[0] = self.stats.branching_factor_tuple[0] + len(children)        # added this (same code from minimax) to compute the branching factor
         self.stats.branching_factor_tuple[1] = self.stats.branching_factor_tuple[1] + 1
 
-        gf.write("\nSTART TIME HERE:" + str(start_time) + "\n" + "current depth is: " + str(depth) + "\nmax depth is: " + str(self.options.max_depth) + "\n--------")
+        gf.write("\nSTART TIME HERE:" + str(start_time) + "\n" + "current depth is: " + str(depth) + "\nalpha is: " + str(alpha) +"\n--------")
         elapsed_time = (datetime.now() - start_time).total_seconds()
         allowedTime = elapsed_time * 0.95
         if (depth == self.options.max_depth) or (children == None)  or (elapsed_time >= allowedTime):
@@ -602,6 +602,7 @@ class Game:
                 if maxScore[0] < minimaxScore[0]:
                     maxScore = (minimaxScore[0], child)
                     alpha = max(alpha, maxScore[0])
+
                 if  beta <= alpha:
                     break
             return maxScore
@@ -683,25 +684,25 @@ class Game:
         self.stats.total_seconds += elapsed_seconds
 
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
-        gf.write(f"Elapsed time: {elapsed_seconds:0.1f}s")                                                                              # added file write here
+        gf.write(f"Elapsed time: {elapsed_seconds:0.1f}s\n")                                                                              # added file write here
 
-        print(f"Heuristic score: {score} \n")
-
+        print(f"Heuristic score: {score}")
         gf.write(f"Heuristic score: {score} \n")                                                                                        # added file write here
+
         total_evals = sum(self.stats.evaluations_per_depth.values())
-        print(f"Cumulative evals: {total_evals/1000000}M \n")
+        print(f"Cumulative evals: {total_evals/1000000}M ")
         gf.write(f"Cumulative evals: {total_evals/1000000}M \n")                                                                        # added file write here
 
-        print(f"Cumulative evals per depth: ",end='')
-        gf.write(f"Cumulative evals per depth: ")                                                                                # added file write here
+        print(f"Cumulative evals per depth: \n",end='')
+        gf.write(f"Cumulative evals per depth: \n")                                                                                # added file write here
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
             gf.write(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')                                                              # added file write here
-        print()
+        # print()
         gf.write("\n")                                                                                                                  # added file write here
 
         print(f"Cumulative % evals per depth: ",end='')
-        gf.write(f"Cumulative % evals per depth: ")                                                                              # added file write here
+        gf.write(f"Cumulative % evals per depth: \n")                                                                              # added file write here
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]/total_evals}% ",end='')
             gf.write(f"{k}:{self.stats.evaluations_per_depth[k]/total_evals}% ",end='')                                                 # added file write here

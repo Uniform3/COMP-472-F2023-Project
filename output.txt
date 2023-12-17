@@ -17,8 +17,20 @@ B: dT9 dP9  .   .   .
 C: dF9  .   .   .  aP9 
 D:  .   .   .  aF9 aV9 
 E:  .   .  aP9 aV9 aA9 
+Move from E2 to E1
 
-START TIME HERE:2023-11-29 15:55:43.859100
+Next player: Defender
+Turns played: 1
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C: dF9  .   .   .  aP9 
+D:  .   .   .  aF9 aV9 
+E:  .  aP9  .  aV9 aA9 
+
+
+START TIME HERE:2023-12-03 15:34:53.698539
 current depth is: 0
 alpha is: -1000000
 --------Elapsed time: 0.0s

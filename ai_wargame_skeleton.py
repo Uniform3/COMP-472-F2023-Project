@@ -602,7 +602,6 @@ class Game:
                 if maxScore[0] < minimaxScore[0]:
                     maxScore = (minimaxScore[0], child)
                     alpha = max(alpha, maxScore[0])
-
                 if  beta <= alpha:
                     break
             return maxScore
